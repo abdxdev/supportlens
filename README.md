@@ -1,11 +1,15 @@
 # SupportLens
 
+A lightweight observability platform for a customer support chatbot.
 
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
 
 ## Prerequisites
 
-- Python 3.11+
-- Node.js 18+
+- Python 3.14
+- Node.js 22
 
 ## Setup
 
@@ -40,6 +44,7 @@ fastapi dev main.py
 
 ```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
