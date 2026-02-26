@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { sendChat, saveTrace } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import MarkdownRenderer from "@/components/markdown-renderer";
 import { SendHorizonal, Bot, User, Loader2 } from "lucide-react";
 
 const CATEGORY_COLORS = {
@@ -23,7 +23,9 @@ function Bubble({ role, text, categories, responseTime }) {
         </div>
       )}
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
-        <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"}`}>{text}</div>
+        <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"}`}>
+          <MarkdownRenderer content={text} />
+          </div>
         {categories?.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             {categories.map((cat) => (

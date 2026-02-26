@@ -82,7 +82,7 @@ def generate_chat_and_classify(user_message: str) -> tuple[str, list[str], int]:
     t0 = time.time()
     try:
         resp = gemini.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.5-flash",
             contents=prompt,
             config={
                 "response_mime_type": "application/json",

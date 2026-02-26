@@ -6,8 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { MessageSquare, Clock, RefreshCw, ChevronRight, TrendingUp, Layers, Activity } from "lucide-react";
-
-//  constants
+import MarkdownRenderer from "@/components/markdown-renderer";
 
 const CATEGORIES = ["Billing", "Refund", "Account Access", "Cancellation", "General Inquiry"];
 
@@ -27,8 +26,6 @@ const CHART_COLORS = {
   "General Inquiry": "#22c55e",
 };
 
-//  helpers
-
 function formatTs(iso) {
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
@@ -38,8 +35,6 @@ function formatTs(iso) {
     minute: "2-digit",
   });
 }
-
-//  sub-components ─
 
 function CategoryBadge({ categories }) {
   return (
@@ -70,8 +65,6 @@ function KpiItem({ icon: Icon, label, value, sub, accent, last }) {
     </div>
   );
 }
-
-//  main Dashboard ─
 
 export default function Dashboard({ refreshSignal }) {
   const [analytics, setAnalytics] = useState(null);
@@ -309,7 +302,9 @@ export default function Dashboard({ refreshSignal }) {
               </div>
               <div className="py-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Bot Response</p>
-                <p className="leading-relaxed text-muted-foreground">{selectedTrace.bot_response}</p>
+                <p className="leading-relaxed text-muted-foreground">
+                  <MarkdownRenderer content={selectedTrace.bot_response} />
+                </p>
               </div>
             </div>
           </DialogContent>
