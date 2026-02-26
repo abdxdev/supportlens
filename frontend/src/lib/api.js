@@ -21,14 +21,14 @@ export async function sendChat(message) {
     body: JSON.stringify({ message }),
   });
   await throwIfError(res);
-  return res.json(); // { response, category, response_time_ms }
+  return res.json(); // { response, categories, response_time_ms }
 }
 
-export async function saveTrace({ user_message, bot_response, response_time_ms, category }) {
+export async function saveTrace({ user_message, bot_response, response_time_ms, categories }) {
   const res = await fetch(`${BASE}/traces`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_message, bot_response, response_time_ms, category }),
+    body: JSON.stringify({ user_message, bot_response, response_time_ms, categories }),
   });
   await throwIfError(res);
   return res.json();

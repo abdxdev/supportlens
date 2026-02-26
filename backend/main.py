@@ -73,41 +73,12 @@ init_db()
 # ---------------------------------------------------------------------------
 # LLM helpers
 # ---------------------------------------------------------------------------
-COMBINED_PROMPT_TEMPLATE = """
-You are a helpful and empathetic customer support agent for a SaaS billing and
-subscription management platform used by thousands of small businesses.
-
-Your responsibilities:
-- Answer billing questions (invoices, charges, payment methods, pricing tiers)
-- Handle refund requests (explain the 14-day money-back policy, initiate credits)
-- Resolve account access issues (password resets, MFA, locked accounts)
-- Assist with subscription changes (upgrades, downgrades, cancellations)
-- Answer general product and feature questions
-
-Tone guidelines:
-- Be friendly, concise, and professional
-- Acknowledge the customer's frustration when appropriate
-- Always give a clear next step or resolution
-- Keep replies under 120 words
-
-Categories:
-  Billing        – Questions about invoices, charges, payment methods, pricing, or subscription fees.
-  Refund         – Requests to return a product, get money back, dispute a charge, or process a credit.
-  Account Access – Issues logging in, resetting passwords, locked accounts, or MFA problems.
-  Cancellation   – Requests to cancel a subscription, downgrade a plan, or close an account.
-  General Inquiry– Anything that does not fit the above.
-
-For the customer message below, respond with a JSON object with two keys:
-  "reply"    – your support response (string, under 120 words)
-  "category" – the single best-matching category from the list above (exact string)
-
-Customer: {user_message}
-""".strip()
+_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "PROMPT.md")
+COMBINED_PROMPT_TEMPLATE = open(_PROMPT_PATH).read().strip()
 
 
-def generate_chat_and_classify(user_message: str) -> tuple[str, str, int]:
-    """Single Gemini call: returns (reply, category, elapsed_ms)."""
-    prompt = COMBINED_PROMPT_TEMPLATE.format(user_message=user_message)
+def generate_chat_and_classify(user_message: str) -> tuple[str, list[str], int]:
+    prompt = COMBINED_PROMPT_TEMPLATE.replace("{user_message}", user_message)
     t0 = time.time()
     try:
         resp = gemini.models.generate_content(
@@ -119,12 +90,14 @@ def generate_chat_and_classify(user_message: str) -> tuple[str, str, int]:
                     "type": "object",
                     "properties": {
                         "reply": {"type": "string"},
-                        "category": {
-                            "type": "string",
-                            "enum": CATEGORIES,
+                        "categories": {
+                            "type": "array",
+                            "items": {"type": "string", "enum": CATEGORIES},
+                            "minItems": 1,
+                            "maxItems": 2,
                         },
                     },
-                    "required": ["reply", "category"],
+                    "required": ["reply", "categories"],
                 },
             },
         )
@@ -138,10 +111,9 @@ def generate_chat_and_classify(user_message: str) -> tuple[str, str, int]:
     elapsed_ms = int((time.time() - t0) * 1000)
     data = json.loads(resp.text)
     reply = data.get("reply", "").strip()
-    category = data.get("category", "General Inquiry")
-    if category not in CATEGORIES:
-        category = "General Inquiry"
-    return reply, category, elapsed_ms
+    raw = data.get("categories", ["General Inquiry"])
+    cats = list(dict.fromkeys(c for c in raw if c in CATEGORIES))[:2] or ["General Inquiry"]
+    return reply, cats, elapsed_ms
 
 
 # ---------------------------------------------------------------------------
@@ -155,79 +127,84 @@ class TraceCreate(BaseModel):
     user_message: str
     bot_response: str
     response_time_ms: int
-    category: Optional[str] = None
+    categories: list[str] = ["General Inquiry"]
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 @app.post("/chat")
 def chat(req: ChatRequest):
-    """Generate a chatbot response and classify the conversation in one LLM call."""
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
-    reply, category, response_time_ms = generate_chat_and_classify(req.message)
-    return {"response": reply, "category": category, "response_time_ms": response_time_ms}
+    reply, categories, response_time_ms = generate_chat_and_classify(req.message)
+    return {"response": reply, "categories": categories, "response_time_ms": response_time_ms}
 
 
 @app.post("/traces", status_code=201)
 def create_trace(req: TraceCreate):
-    """Persist a trace with its pre-computed category."""
-    category = req.category if req.category in CATEGORIES else "General Inquiry"
+    cats = list(dict.fromkeys(c for c in req.categories if c in CATEGORIES))[:2] or ["General Inquiry"]
     trace = {
         "id": str(uuid.uuid4()),
         "user_message": req.user_message,
         "bot_response": req.bot_response,
-        "category": category,
+        "categories": cats,
         "timestamp": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "response_time_ms": req.response_time_ms,
     }
     conn = get_db()
     conn.execute(
         "INSERT INTO traces VALUES (:id, :user_message, :bot_response, :category, :timestamp, :response_time_ms)",
-        trace,
+        {**trace, "category": json.dumps(cats)},
     )
     conn.commit()
     conn.close()
     return trace
 
 
+def _row_to_dict(row: sqlite3.Row) -> dict:
+    d = dict(row)
+    d["categories"] = json.loads(d.pop("category"))
+    return d
+
+
 @app.get("/traces")
 def get_traces(category: Optional[str] = Query(default=None)):
-    """Return all traces, most recent first. Optionally filter by category."""
     conn = get_db()
     if category:
         rows = conn.execute(
-            "SELECT * FROM traces WHERE category = ? ORDER BY timestamp DESC",
-            (category,),
+            'SELECT * FROM traces WHERE category LIKE ? ORDER BY timestamp DESC',
+            (f'%"{category}"%',),
         ).fetchall()
     else:
-        rows = conn.execute(
-            "SELECT * FROM traces ORDER BY timestamp DESC"
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM traces ORDER BY timestamp DESC").fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [_row_to_dict(r) for r in rows]
 
 
 @app.get("/analytics")
 def get_analytics():
-    """Return aggregate statistics across all stored traces."""
     conn = get_db()
     total: int = conn.execute("SELECT COUNT(*) FROM traces").fetchone()[0]
     avg_rt: float = (
         conn.execute("SELECT AVG(response_time_ms) FROM traces").fetchone()[0] or 0.0
     )
-    cat_rows = conn.execute(
-        "SELECT category, COUNT(*) AS cnt FROM traces GROUP BY category"
-    ).fetchall()
+    cat_col_rows = conn.execute("SELECT category FROM traces").fetchall()
     conn.close()
 
-    breakdown = {cat: {"count": 0, "percentage": 0.0} for cat in CATEGORIES}
-    for row in cat_rows:
-        cat, cnt = row["category"], row["cnt"]
-        breakdown[cat] = {
-            "count": cnt,
-            "percentage": round((cnt / total * 100) if total > 0 else 0.0, 1),
+    counts: dict[str, int] = {cat: 0 for cat in CATEGORIES}
+    for row in cat_col_rows:
+        for cat in json.loads(row["category"]):
+            if cat in counts:
+                counts[cat] += 1
+
+    total_hits = sum(counts.values()) or 1  # denominator for percentage
+    breakdown = {
+        cat: {
+            "count": counts[cat],
+            "percentage": round(counts[cat] / total_hits * 100, 1),
         }
+        for cat in CATEGORIES
+    }
 
     return {
         "total_traces": total,

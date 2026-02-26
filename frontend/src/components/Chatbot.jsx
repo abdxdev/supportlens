@@ -13,7 +13,7 @@ const CATEGORY_COLORS = {
   "General Inquiry": "bg-green-100 text-green-800",
 };
 
-function Bubble({ role, text, category, responseTime }) {
+function Bubble({ role, text, categories, responseTime }) {
   const isUser = role === "user";
   return (
     <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"} mb-4`}>
@@ -24,9 +24,13 @@ function Bubble({ role, text, category, responseTime }) {
       )}
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"}`}>{text}</div>
-        {category && (
+        {categories?.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[category] ?? "bg-gray-100 text-gray-700"}`}>{category}</span>
+            {categories.map((cat) => (
+              <span key={cat} className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[cat] ?? "bg-gray-100 text-gray-700"}`}>
+                {cat}
+              </span>
+            ))}
             {responseTime && <span className="text-xs text-muted-foreground">{responseTime} ms</span>}
           </div>
         )}
@@ -58,20 +62,19 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
     setLoading(true);
 
     try {
-      const { response, category, response_time_ms } = await sendChat(message);
-      // Save trace — pass the pre-computed category so no second LLM call is needed
+      const { response, categories, response_time_ms } = await sendChat(message);
       const trace = await saveTrace({
         user_message: message,
         bot_response: response,
         response_time_ms,
-        category,
+        categories,
       });
       setMessages((prev) => [
         ...prev,
         {
           role: "bot",
           text: response,
-          category: trace.category,
+          categories: trace.categories,
           responseTime: response_time_ms,
         },
       ]);
@@ -118,7 +121,7 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
       {/* Messages */}
       <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
         {messages.map((m, i) => (
-          <Bubble key={i} role={m.role} text={m.text} category={m.category} responseTime={m.responseTime} />
+          <Bubble key={i} role={m.role} text={m.text} categories={m.categories} responseTime={m.responseTime} />
         ))}
         {loading && (
           <div className="flex gap-3 justify-start mb-4">

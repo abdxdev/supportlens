@@ -41,9 +41,19 @@ function formatTs(iso) {
 
 //  sub-components ─
 
-function CategoryBadge({ category }) {
-  const cls = CATEGORY_VARIANTS[category] ?? "bg-gray-100 text-gray-800";
-  return <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full border ${cls}`}>{category}</span>;
+function CategoryBadge({ categories }) {
+  return (
+    <div className="flex gap-1 flex-wrap">
+      {(categories ?? []).map((cat) => {
+        const cls = CATEGORY_VARIANTS[cat] ?? "bg-gray-100 text-gray-800";
+        return (
+          <span key={cat} className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full border ${cls}`}>
+            {cat}
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 function KpiItem({ icon: Icon, label, value, sub, accent, last }) {
@@ -255,7 +265,7 @@ export default function Dashboard({ refreshSignal }) {
                     <span className="block truncate text-sm text-muted-foreground">{t.bot_response}</span>
                   </TableCell>
                   <TableCell>
-                    <CategoryBadge category={t.category} />
+                    <CategoryBadge categories={t.categories} />
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-sm pr-8">{t.response_time_ms.toLocaleString()} ms</TableCell>
                   <TableCell>
@@ -275,7 +285,7 @@ export default function Dashboard({ refreshSignal }) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 flex-wrap">
                 Trace Detail
-                <CategoryBadge category={selectedTrace.category} />
+                <CategoryBadge categories={selectedTrace.categories} />
               </DialogTitle>
             </DialogHeader>
             <div className="divide-y text-sm">
