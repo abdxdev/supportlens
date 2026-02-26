@@ -276,10 +276,7 @@ export default function Dashboard({ refreshSignal }) {
         {selectedTrace && (
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 flex-wrap">
-                Trace Detail
-                <CategoryBadge categories={selectedTrace.categories} />
-              </DialogTitle>
+              <DialogTitle>Trace Detail</DialogTitle>
             </DialogHeader>
             <div className="divide-y text-sm">
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 py-3 text-xs text-muted-foreground">
@@ -292,8 +289,9 @@ export default function Dashboard({ refreshSignal }) {
                 <div>
                   <span className="font-medium text-foreground">Response time:</span> {selectedTrace.response_time_ms} ms
                 </div>
-                <div>
-                  <span className="font-medium text-foreground">Category:</span> {selectedTrace.category}
+                <div className="col-span-2 flex items-center gap-2">
+                  <span className="font-medium text-foreground">Categories:</span>
+                  <CategoryBadge categories={selectedTrace.categories} />
                 </div>
               </div>
               <div className="py-4">

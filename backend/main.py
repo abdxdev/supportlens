@@ -15,9 +15,7 @@ from google.genai import errors as genai_errors
 
 load_dotenv()
 
-# ---------------------------------------------------------------------------
-# App & CORS
-# ---------------------------------------------------------------------------
+
 app = FastAPI(title="SupportLens API")
 
 app.add_middleware(
@@ -27,9 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------------------------------
-# Gemini client
-# ---------------------------------------------------------------------------
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable is not set")
@@ -38,9 +34,7 @@ gemini = genai.Client(api_key=GEMINI_API_KEY)
 
 CATEGORIES = ["Billing", "Refund", "Account Access", "Cancellation", "General Inquiry"]
 
-# ---------------------------------------------------------------------------
-# SQLite database
-# ---------------------------------------------------------------------------
+
 DB_PATH = os.path.join(os.path.dirname(__file__), "supportlens.db")
 
 
@@ -52,8 +46,7 @@ def get_db() -> sqlite3.Connection:
 
 def init_db() -> None:
     conn = get_db()
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS traces (
             id                TEXT    PRIMARY KEY,
             user_message      TEXT    NOT NULL,
@@ -62,17 +55,14 @@ def init_db() -> None:
             timestamp         TEXT    NOT NULL,
             response_time_ms  INTEGER NOT NULL
         )
-        """
-    )
+        """)
     conn.commit()
     conn.close()
 
 
 init_db()
 
-# ---------------------------------------------------------------------------
-# LLM helpers
-# ---------------------------------------------------------------------------
+
 _PROMPT_PATH = os.path.join(os.path.dirname(__file__), "PROMPT.md")
 COMBINED_PROMPT_TEMPLATE = open(_PROMPT_PATH).read().strip()
 
@@ -116,9 +106,6 @@ def generate_chat_and_classify(user_message: str) -> tuple[str, list[str], int]:
     return reply, cats, elapsed_ms
 
 
-# ---------------------------------------------------------------------------
-# Pydantic models
-# ---------------------------------------------------------------------------
 class ChatRequest(BaseModel):
     message: str
 
@@ -129,9 +116,7 @@ class TraceCreate(BaseModel):
     response_time_ms: int
     categories: list[str] = ["General Inquiry"]
 
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
+
 @app.post("/chat")
 def chat(req: ChatRequest):
     if not req.message.strip():
@@ -172,7 +157,7 @@ def get_traces(category: Optional[str] = Query(default=None)):
     conn = get_db()
     if category:
         rows = conn.execute(
-            'SELECT * FROM traces WHERE category LIKE ? ORDER BY timestamp DESC',
+            "SELECT * FROM traces WHERE category LIKE ? ORDER BY timestamp DESC",
             (f'%"{category}"%',),
         ).fetchall()
     else:
@@ -185,9 +170,7 @@ def get_traces(category: Optional[str] = Query(default=None)):
 def get_analytics():
     conn = get_db()
     total: int = conn.execute("SELECT COUNT(*) FROM traces").fetchone()[0]
-    avg_rt: float = (
-        conn.execute("SELECT AVG(response_time_ms) FROM traces").fetchone()[0] or 0.0
-    )
+    avg_rt: float = conn.execute("SELECT AVG(response_time_ms) FROM traces").fetchone()[0] or 0.0
     cat_col_rows = conn.execute("SELECT category FROM traces").fetchall()
     conn.close()
 
@@ -197,7 +180,7 @@ def get_analytics():
             if cat in counts:
                 counts[cat] += 1
 
-    total_hits = sum(counts.values()) or 1  # denominator for percentage
+    total_hits = sum(counts.values()) or 1
     breakdown = {
         cat: {
             "count": counts[cat],
