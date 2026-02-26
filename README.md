@@ -1,6 +1,8 @@
 # SupportLens
 
+![alt text](image.png)
 
+SupportLens: a lightweight observability platform for a customer support chatbot.
 
 ## Prerequisites
 
@@ -40,6 +42,7 @@ fastapi dev main.py
 
 ```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
