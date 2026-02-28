@@ -28,7 +28,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchHealth();
+    fetchHealth(); // eslint-disable-line react-hooks/set-state-in-effect -- initial fetch is async, setState is deferred
     const id = setInterval(fetchHealth, 30_000);
     return () => clearInterval(id);
   }, [fetchHealth]);

@@ -19,6 +19,7 @@ function formatUptime(seconds) {
   return `${h}h ${m}m`;
 }
 
+// eslint-disable-next-line no-unused-vars -- Icon is used as a JSX component
 function CheckRow({ icon: Icon, label, status, detail }) {
   const dotColor = status === "up" || status === "configured" ? "bg-emerald-500" : status === "unconfigured" ? "bg-amber-500" : "bg-red-500";
 

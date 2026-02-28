@@ -51,6 +51,7 @@ function CategoryBadge({ categories }) {
   );
 }
 
+// eslint-disable-next-line no-unused-vars -- Icon is used as a JSX component
 function KpiItem({ icon: Icon, label, value, sub, accent, last }) {
   return (
     <div className={`flex items-center gap-4 px-8 py-5 min-w-0 flex-1 ${!last ? "border-r" : ""}`}>
