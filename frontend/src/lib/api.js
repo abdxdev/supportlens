@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 async function throwIfError(res) {
   if (res.ok) return;
@@ -45,6 +45,12 @@ export async function getTraces(category = null) {
 
 export async function getAnalytics() {
   const res = await fetch(`${BASE}/analytics`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function getHealth() {
+  const res = await fetch(`${BASE}/health`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

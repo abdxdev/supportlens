@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { sendChat, saveTrace } from "@/lib/api";
+import { sendChat } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MarkdownRenderer from "@/components/markdown-renderer";
@@ -11,6 +11,7 @@ const CATEGORY_COLORS = {
   "Account Access": "bg-purple-100 text-purple-800",
   Cancellation: "bg-red-100 text-red-800",
   "General Inquiry": "bg-green-100 text-green-800",
+  Error: "bg-red-200 text-red-900",
 };
 
 function Bubble({ role, text, categories, responseTime }) {
@@ -25,7 +26,7 @@ function Bubble({ role, text, categories, responseTime }) {
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"}`}>
           <MarkdownRenderer content={text} />
-          </div>
+        </div>
         {categories?.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             {categories.map((cat) => (
@@ -46,9 +47,10 @@ function Bubble({ role, text, categories, responseTime }) {
   );
 }
 
-export default function Chatbot({ messages, setMessages, onNewTrace }) {
+export default function Chatbot({ messages, setMessages, onNewTrace, serviceStatus }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const isUnhealthy = serviceStatus === "unhealthy";
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -57,27 +59,22 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
 
   async function handleSend() {
     const message = input.trim();
-    if (!message || loading) return;
+    if (!message || loading || isUnhealthy) return;
 
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text: message }]);
     setLoading(true);
 
     try {
-      const { response, categories, response_time_ms } = await sendChat(message);
-      const trace = await saveTrace({
-        user_message: message,
-        bot_response: response,
-        response_time_ms,
-        categories,
-      });
+      const { response, categories, response_time_ms, is_fallback } = await sendChat(message);
       setMessages((prev) => [
         ...prev,
         {
           role: "bot",
           text: response,
-          categories: trace.categories,
+          categories,
           responseTime: response_time_ms,
+          isFallback: is_fallback,
         },
       ]);
       onNewTrace?.();
@@ -114,8 +111,8 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
         <div>
           <p className="font-semibold text-sm">Bot Support</p>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-            Online
+            <span className={`w-1.5 h-1.5 rounded-full inline-block ${isUnhealthy ? "bg-red-500" : "bg-green-500"}`} />
+            {isUnhealthy ? "Service Unhealthy" : "Online"}
           </p>
         </div>
       </div>
@@ -142,8 +139,8 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
       {/* Input bar */}
       <div className="px-6 py-4 border-t">
         <div className="flex gap-2">
-          <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Type your message…" disabled={loading} className="flex-1" />
-          <Button onClick={handleSend} disabled={loading || !input.trim()} size="icon">
+          <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={isUnhealthy ? "Chat unavailable — service is unhealthy" : "Type your message…"} disabled={loading || isUnhealthy} className="flex-1" />
+          <Button onClick={handleSend} disabled={loading || isUnhealthy || !input.trim()} size="icon">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
           </Button>
         </div>
