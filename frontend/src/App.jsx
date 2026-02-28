@@ -6,6 +6,7 @@ import Dashboard from "@/components/Dashboard";
 import { Eye, MessageSquare } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
+import StatusBadge from "@/components/StatusBadge";
 
 export default function App() {
   const [refreshSignal, setRefreshSignal] = useState(0);
@@ -65,6 +66,7 @@ export default function App() {
             </TabsContent>
           </Tabs>
         </main>
+        <StatusBadge />
       </div>
     </ThemeProvider>
   );

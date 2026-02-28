@@ -1,16 +1,14 @@
-"""
-Seed the SupportLens database with 25 pre-classified traces.
-Run once:  python seed_data.py
-"""
-
 import json
-import sqlite3
-import uuid
-import datetime
 import os
+import datetime
 import random
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "supportlens.db")
+import psycopg2
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://supportlens:supportlens@localhost:5432/supportlens",
+)
 
 TRACES = [
     # --- Billing (5) ---
@@ -178,35 +176,39 @@ TRACES = [
 
 
 def seed():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute(
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    cur.execute(
         """
         CREATE TABLE IF NOT EXISTS traces (
-            id                TEXT    PRIMARY KEY,
-            user_message      TEXT    NOT NULL,
-            bot_response      TEXT    NOT NULL,
-            category          TEXT    NOT NULL,
-            timestamp         TEXT    NOT NULL,
-            response_time_ms  INTEGER NOT NULL
+            id                BIGSERIAL PRIMARY KEY,
+            user_message      TEXT      NOT NULL,
+            bot_response      TEXT      NOT NULL,
+            category          TEXT      NOT NULL,
+            timestamp         TEXT      NOT NULL,
+            response_time_ms  INTEGER   NOT NULL
         )
         """
     )
+    conn.commit()
 
-    existing = conn.execute("SELECT COUNT(*) FROM traces").fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM traces")
+    existing = cur.fetchone()[0]
     if existing >= len(TRACES):
         print(f"Database already has {existing} traces — skipping seed.")
+        cur.close()
         conn.close()
         return
 
     # Spread timestamps across the last 30 days
     now = datetime.datetime.utcnow()
-    for i, t in enumerate(TRACES):
+    for t in TRACES:
         offset_hours = random.randint(0, 30 * 24)
         ts = (now - datetime.timedelta(hours=offset_hours)).isoformat(timespec="seconds") + "Z"
-        conn.execute(
-            "INSERT OR IGNORE INTO traces VALUES (?, ?, ?, ?, ?, ?)",
+        cur.execute(
+            """INSERT INTO traces (user_message, bot_response, category, timestamp, response_time_ms)
+               VALUES (%s, %s, %s, %s, %s)""",
             (
-                str(uuid.uuid4()),
                 t["user_message"],
                 t["bot_response"],
                 json.dumps(t["categories"]),
@@ -216,6 +218,7 @@ def seed():
         )
 
     conn.commit()
+    cur.close()
     conn.close()
     print(f"Seeded {len(TRACES)} traces successfully.")
 

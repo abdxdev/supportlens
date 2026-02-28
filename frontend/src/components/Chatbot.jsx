@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { sendChat, saveTrace } from "@/lib/api";
+import { sendChat } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MarkdownRenderer from "@/components/markdown-renderer";
@@ -11,6 +11,7 @@ const CATEGORY_COLORS = {
   "Account Access": "bg-purple-100 text-purple-800",
   Cancellation: "bg-red-100 text-red-800",
   "General Inquiry": "bg-green-100 text-green-800",
+  Error: "bg-red-200 text-red-900",
 };
 
 function Bubble({ role, text, categories, responseTime }) {
@@ -25,7 +26,7 @@ function Bubble({ role, text, categories, responseTime }) {
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"}`}>
           <MarkdownRenderer content={text} />
-          </div>
+        </div>
         {categories?.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             {categories.map((cat) => (
@@ -64,20 +65,15 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
     setLoading(true);
 
     try {
-      const { response, categories, response_time_ms } = await sendChat(message);
-      const trace = await saveTrace({
-        user_message: message,
-        bot_response: response,
-        response_time_ms,
-        categories,
-      });
+      const { response, categories, response_time_ms, is_fallback } = await sendChat(message);
       setMessages((prev) => [
         ...prev,
         {
           role: "bot",
           text: response,
-          categories: trace.categories,
+          categories,
           responseTime: response_time_ms,
+          isFallback: is_fallback,
         },
       ]);
       onNewTrace?.();

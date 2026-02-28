@@ -13,14 +13,15 @@ A lightweight observability platform for a customer support chatbot.
 
 ## Setup
 
-### 1. Add your Gemini API key
+### 1. Backend
 
 ```bash
 cd backend
 cp .env.example .env
 ```
 
-Edit the `.env` file and add your Gemini API key:
+::: [!note]
+Edit the `backend/.env` file and add your Gemini API key:
 
 ```
 GEMINI_API_KEY=your_key_here
@@ -28,19 +29,18 @@ GEMINI_API_KEY=your_key_here
 
 Get a free key at [aistudio.google.com](https://aistudio.google.com/app/apikey).
 
-### 2. Backend
+:::
 
 ```bash
-cd backend
 python -m venv .venv
 .venv\Scripts\activate       # Windows
 # source .venv/bin/activate  # macOS/Linux
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 python seed_data.py
 fastapi dev main.py
 ```
 
-### 3. Frontend (new terminal)
+### 2. Frontend (new terminal)
 
 ```bash
 cd frontend
@@ -50,3 +50,14 @@ npm run dev
 ```
 
 Open **http://localhost:5173**.
+
+## Troubleshooting
+
+Backend unreachable
+![alt text](screenshots/image-3.png)
+
+Database unreachable
+![alt text](screenshots/image-4.png)
+
+LLM not configured
+![alt text](screenshots/image-5.png)
