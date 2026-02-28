@@ -47,9 +47,10 @@ function Bubble({ role, text, categories, responseTime }) {
   );
 }
 
-export default function Chatbot({ messages, setMessages, onNewTrace }) {
+export default function Chatbot({ messages, setMessages, onNewTrace, serviceStatus }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const isUnhealthy = serviceStatus === "unhealthy";
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
 
   async function handleSend() {
     const message = input.trim();
-    if (!message || loading) return;
+    if (!message || loading || isUnhealthy) return;
 
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text: message }]);
@@ -110,8 +111,8 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
         <div>
           <p className="font-semibold text-sm">Bot Support</p>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-            Online
+            <span className={`w-1.5 h-1.5 rounded-full inline-block ${isUnhealthy ? "bg-red-500" : "bg-green-500"}`} />
+            {isUnhealthy ? "Service Unhealthy" : "Online"}
           </p>
         </div>
       </div>
@@ -138,8 +139,8 @@ export default function Chatbot({ messages, setMessages, onNewTrace }) {
       {/* Input bar */}
       <div className="px-6 py-4 border-t">
         <div className="flex gap-2">
-          <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder="Type your message…" disabled={loading} className="flex-1" />
-          <Button onClick={handleSend} disabled={loading || !input.trim()} size="icon">
+          <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={isUnhealthy ? "Chat unavailable — service is unhealthy" : "Type your message…"} disabled={loading || isUnhealthy} className="flex-1" />
+          <Button onClick={handleSend} disabled={loading || isUnhealthy || !input.trim()} size="icon">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
           </Button>
         </div>

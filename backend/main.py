@@ -233,6 +233,19 @@ class TraceCreate(BaseModel):
 def chat(req: ChatRequest):
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.close()
+        conn.close()
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Service is unhealthy - chat is temporarily unavailable.",
+        )
+
     reply, categories, response_time_ms, is_fallback = generate_chat_and_classify(req.message)
 
     # Auto-save every interaction as a trace
@@ -375,7 +388,6 @@ def health():
     checks: dict = {}
     overall = "healthy"
 
-    # --- Database ---
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -387,7 +399,6 @@ def health():
         checks["database"] = {"status": "down", "error": str(exc)}
         overall = "unhealthy"
 
-    # --- LLM ---
     if GEMINI_API_KEY and gemini is not None:
         checks["llm"] = {
             "status": "configured",
@@ -408,7 +419,6 @@ def health():
         if overall != "unhealthy":
             overall = "degraded"
 
-    # --- Uptime ---
     uptime_seconds = int(time.time() - _start_time)
 
     return {

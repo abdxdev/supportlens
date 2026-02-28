@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import { getHealth } from "@/lib/api";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -38,27 +37,9 @@ function CheckRow({ icon: Icon, label, status, detail }) {
   );
 }
 
-export default function StatusBadge() {
-  const [health, setHealth] = useState(null);
+export default function StatusBadge({ health, healthError, fetchHealth }) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchHealth = useCallback(async () => {
-    try {
-      const data = await getHealth();
-      setHealth(data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      setHealth(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchHealth();
-    const id = setInterval(fetchHealth, 30_000);
-    return () => clearInterval(id);
-  }, [fetchHealth]);
+  const error = healthError;
 
   useEffect(() => {
     if (open) fetchHealth();
