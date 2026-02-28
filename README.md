@@ -30,7 +30,7 @@ cp .env.example .env
 ```
 
 > [!NOTE]
-> Edit the `.env` file and add your Gemini API key (optional - the app runs without it in degraded mode):
+> Edit the `.env` file and add your Gemini API key:
 >
 > ```
 > GEMINI_API_KEY=your_key_here
@@ -49,7 +49,8 @@ Open **http://localhost** (port 80).
 #### 1. Backend
 
 ```bash
-cd backend
+git clone https://github.com/abdxdev/supportlens.git
+cd supportlens/backend
 cp .env.example .env
 ```
 
@@ -97,13 +98,13 @@ Open **http://localhost:5173**.
 
   ![Backend unreachable](screenshots/image-3.png)
 
-- Database unreachable
-
-  ![Database unreachable](screenshots/image-4.png)
-
 - LLM not configured
 
-  ![LLM not configured](screenshots/image-5.png)
+  ![LLM not configured](screenshots/image-4.png)
+
+- Database unreachable
+
+  ![Database unreachable](screenshots/image-5.png)
 
 ## CI / Testing
 
